@@ -1,0 +1,26 @@
+# version: '3.8'
+services:
+  app:
+    image: single-session-bot:latest
+    restart: always
+    build: .
+    volumes:
+      - single-session-vol:/bot/data
+    ports:
+      - 8081
+  
+  redis:
+    image: "redis:alpine" 
+    restart: on-failure
+    ports:
+    - 8070
+    - 8443
+    - 9443
+    
+volumes:
+  # Persistent storage for your application data (optional)
+  single-session-vol:
+    {}
+
+networks:
+  default:
