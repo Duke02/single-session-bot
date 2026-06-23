@@ -9,7 +9,7 @@ services:
       - 8081
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     environment:
       REDIS_PORT: 6379
       REDIS_HOST: "ss-redis"
@@ -23,7 +23,12 @@ services:
     - 8443:8443
     - 9443:9443
     - 6379:6379
-    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   # Persistent storage for your application data (optional)
   single-session-vol:
