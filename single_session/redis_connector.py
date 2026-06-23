@@ -71,7 +71,7 @@ class RedisConnector:
         num_users_so_far: int = self.get_num_users_in_queue()
         if self.get_position_for_user(user) is not None:
             raise ValueError(f"User with name {user} is already in USER table.")
-        self.redis_conn.hset(f"USER:{user}", "position", num_users_so_far + 1)
+        self.redis_conn.hset("USER", user, num_users_so_far + 1)
         # Set up a reverse index so we can go from user -> position (above)
         # and position -> user (below)
         self.redis_conn.hset("QUEUE", f"pos-{num_users_so_far}", user)
@@ -117,4 +117,7 @@ class RedisConnector:
         return self.redis_conn.hget("QUEUE", f"pos-{q_idx + 1}")
 
     def get_all_users(self) -> dict[str, int]:
-        return {user_id: int(idx) for user_id, idx in self.redis_conn.hgetall("USER").items()}
+        return {
+            user_id: int(idx)
+            for user_id, idx in self.redis_conn.hgetall("USER").items()
+        }

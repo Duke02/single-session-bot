@@ -1,3 +1,5 @@
+import queue
+from typing import Awaitable
 from discord.abc import User
 from collections import defaultdict
 import discord
@@ -13,17 +15,12 @@ user_lookup: dict[str, discord.User] = {}
 
 def _add_user_to_lookup(user: discord.User):
     user_id: str = get_user_id(user)
+    assert user_id is not None, (
+        "Tried adding user to queue but could not get an ID from the guy."
+    )
     if user_id in user_lookup:
         return
     user_lookup[user_id] = user
-
-
-async def _join_queue(context: commands.Context):
-    user_id: str = get_user_id(context.author)
-    _add_user_to_lookup(context.author)
-    redis_conn.add_user_to_queue(user_id)
-    pos: int | None = redis_conn.get_position_for_user(user_id)
-    await context.reply(f"Added you to the queue! You are #{pos}")
 
 
 def _is_user_in_queue(context: commands.Context) -> bool:
@@ -31,6 +28,23 @@ def _is_user_in_queue(context: commands.Context) -> bool:
     _add_user_to_lookup(context.author)
     pos: int | None = redis_conn.get_position_for_user(user_id)
     return pos is not None
+
+
+async def _join_queue(context: commands.Context):
+    user_id: str = get_user_id(context.author)
+    _add_user_to_lookup(context.author)
+    if _is_user_in_queue(context):
+        pos: int = redis_conn.get_position_for_user(user_id)
+        await context.reply(
+            f"BROTHER WE GOT IT YOU WANT TO BE IN THE QUEUE, YOU'RE ALREADY IN THE QUEUE. You're #{pos}."
+        )
+        return
+    redis_conn.add_user_to_queue(user_id)
+    pos: int | None = redis_conn.get_position_for_user(user_id)
+    assert pos is not None, (
+        f"User with ID: {user_id} could not be added to the redis db."
+    )
+    await context.reply(f"Added you to the queue! You are #{pos}")
 
 
 async def _check_position_in_queue(context: commands.Context):
@@ -56,9 +70,14 @@ async def single_session_queue_manager(context: commands.Context):
         if pos is not None:
             # then just give the current user's position
             # in the queue.
-            await context.reply(f"You are #{pos} in the Single Session Queue!")
+            await _check_position_in_queue(context)
         else:
             await _join_queue(context)
+
+
+@single_session_queue_manager.command("join")
+async def join_queue(context: commands.Context):
+    await _join_queue(context)
 
 
 @single_session_queue_manager.command("next")
@@ -94,8 +113,34 @@ async def list_queue(context: commands.Context):
         [(idx, user_lookup[user_id]) for user_id, idx in all_users.items()],
         key=lambda t: t[0],
     )
+    queue_index: int = redis_conn.get_curr_location_in_queue()
     list_embed: discord.Embed = discord.Embed(
         title="Current Queue order!!!",
-        description="\n".join([f"{idx}. {user.mention}" for idx, user in idx_to_user]),
+        description=f"***Current Queue Index*: {queue_index}**\n" + "\n".join([f"{idx}. {user.mention}" for idx, user in idx_to_user]),
     )
     await context.reply(embed=list_embed)
+
+
+@single_session_queue_manager.command("where")
+async def check_position_in_queue(context: commands.Context):
+    await _check_position_in_queue(context)
+
+
+@single_session_queue_manager.command("when")
+async def how_much_longer(context: commands.Context):
+    user_id: str = get_user_id(context.author)
+    _add_user_to_lookup(context.author)
+    if not _is_user_in_queue(context):
+        await context.reply(
+            "Hey bestie, you're not in the queue yet. Do `$ss join` to join the queue and I'll tell you your position once I've added you."
+        )
+        return
+    pos: int = redis_conn.get_position_for_user(user_id)
+    queue_idx: int = redis_conn.get_curr_location_in_queue()
+
+    if pos < queue_idx:
+        pos += redis_conn.get_num_users_in_queue()
+    offset: int = pos - queue_idx
+    await context.reply(
+        f"You have to wait for {offset} more people until it's your turn."
+    )
