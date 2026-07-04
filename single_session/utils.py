@@ -1,8 +1,11 @@
 import asyncio
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Coroutine, TypeVar
 
-from dotenv import load_dotenv
 import discord
 from discord.ext import commands
+from dotenv import load_dotenv
 
 
 async def _create_client() -> commands.Bot:
@@ -17,15 +20,6 @@ async def _create_client() -> commands.Bot:
     # await client.add_cog(SingleSessionCog(client))
     return client
 
-
-import asyncio
-import threading
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Coroutine, TypeVar
-
-__all__ = [
-    "run_coroutine_sync",
-]
 
 T = TypeVar("T")
 
@@ -53,6 +47,7 @@ def run_async_in_sync(coroutine: Coroutine[Any, Any, T], timeout: float = 30) ->
                 return future.result(timeout=timeout)
     else:
         return asyncio.run_coroutine_threadsafe(coroutine, loop).result()
+
 
 def get_client() -> commands.Bot:
     """Get the Discord bot client."""

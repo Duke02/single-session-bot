@@ -1,11 +1,8 @@
-import queue
-from typing import Awaitable
 from discord.abc import User
-from collections import defaultdict
 import discord
 from discord.ext import commands
 
-from single_session.utils import get_client, get_user_id, is_user_moderator
+from single_session.utils import get_user_id, is_user_moderator
 from single_session.redis_connector import RedisConnector
 
 redis_conn: RedisConnector = RedisConnector()
@@ -116,7 +113,8 @@ async def list_queue(context: commands.Context):
     queue_index: int = redis_conn.get_curr_location_in_queue()
     list_embed: discord.Embed = discord.Embed(
         title="Current Queue order!!!",
-        description=f"***Current Queue Index*: {queue_index}**\n" + "\n".join([f"{idx}. {user.mention}" for idx, user in idx_to_user]),
+        description=f"***Current Queue Index*: {queue_index}**\n"
+        + "\n".join([f"{idx}. {user.mention}" for idx, user in idx_to_user]),
     )
     await context.reply(embed=list_embed)
 
