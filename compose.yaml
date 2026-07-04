@@ -2,7 +2,9 @@
 services:
   app:
     image: single-session-bot:latest
-    build: .
+    build:
+      context: .
+      dockerfile: ./Dockerfile
     volumes:
       - single-session-vol:/bot/data
     ports:
