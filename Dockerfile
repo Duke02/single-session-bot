@@ -15,6 +15,7 @@ COPY .python-version .
 
 RUN uv sync 
 
+COPY ./single_session/watch2gether ./single_session/watch2gether
 COPY ./single_session/ ./single_session
 
 
