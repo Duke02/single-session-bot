@@ -120,3 +120,9 @@ class RedisConnector:
             user_id: int(idx)
             for user_id, idx in self.redis_conn.hgetall("USER").items()
         }
+    
+    def set_watch2gether_stream_key(self, stream_key: str):
+        self.redis_conn.hset('W2G', key='streamkey', value=stream_key)
+
+    def get_watch2gether_stream_key(self) -> str | None:
+        return self.redis_conn.hget('W2G', 'streamkey')

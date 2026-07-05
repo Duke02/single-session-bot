@@ -6,6 +6,7 @@ from typing import Any, Coroutine, TypeVar
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+import requests
 
 
 async def _create_client() -> commands.Bot:
@@ -67,3 +68,16 @@ def is_user_moderator(user: discord.User | discord.Member) -> bool:
         role.permissions.moderate_members or role.permissions.administrator
         for role in user.roles
     )
+
+
+def prune_api_key_from_error_message(e: requests.exceptions.HTTPError) -> str:
+    out: str = f'{e}'
+    api_keys: list[str] = ['w2g_api_key']
+    if all(key not in out for key in api_keys):
+        return out 
+    for key_name in api_keys:
+        idx: int = out.find(key_name)
+        end_idx: int = out.find('&', idx)
+        api_key: str = out[idx + len(key_name):end_idx]
+        out: str = out.replace(api_key, '********NO*********')
+    return out 
